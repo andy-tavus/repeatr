@@ -1,10 +1,10 @@
 import { Readable } from 'stream';
 
 const handler = async (req, res) => {
-  // Initialize an object to collect log data
+  // Initialize a raw log data object
   const logData = {
-    authorization: req.headers.authorization || 'Not provided',
-    conversation_id: req.headers.conversation_id || 'Not provided',
+    method: req.method,
+    headers: req.headers,
     body: null,
   };
 
@@ -16,8 +16,8 @@ const handler = async (req, res) => {
     }
     logData.body = Buffer.concat(buffers).toString() || 'No body provided';
 
-    // Log everything as a single log event
-    console.log('Request Log:', logData);
+    // Log the raw request
+    console.log('Raw Request Log:', JSON.stringify(logData, null, 2));
 
     if (req.method !== 'POST') {
       res.setHeader('Allow', ['POST']);
