@@ -1,55 +1,43 @@
 import { Readable } from 'stream';
 
 const handler = async (req, res) => {
+  // Initialize an object to collect log data
   const logData = {
-    method: req.method,
-    headers: req.headers,
-    body: '',
+    authorization: req.headers.authorization || 'Not provided',
+    conversation_id: req.headers.conversation_id || 'Not provided',
+    body: null,
   };
 
   try {
-    // Read incoming chunks with a timeout
-    const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('Request timed out')), 9000)
-    );
+    // Buffer the request body synchronously
+    const buffers = [];
+    for await (const chunk of req) {
+      buffers.push(chunk);
+    }
+    logData.body = Buffer.concat(buffers).toString() || 'No body provided';
 
-    const readStream = new Promise((resolve, reject) => {
-      req.on('data', (chunk) => {
-        logData.body += chunk.toString(); // Append chunk to body
-      });
-
-      req.on('end', () => {
-        resolve();
-      });
-
-      req.on('error', (err) => {
-        reject(err);
-      });
-    });
-
-    // Wait for the input stream or timeout
-    await Promise.race([readStream, timeout]);
-
-    // Log the full request after streaming ends
-    console.log('Raw Request Log:', JSON.stringify(logData, null, 2));
+    // Log everything as a single log event
+    console.log('Request Log:', logData);
 
     if (req.method !== 'POST') {
       res.setHeader('Allow', ['POST']);
       return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 
-    // Respond immediately for streaming input
+    // Create a readable stream for the response
     const stream = new Readable({
       read() {
+        // Send the initial message
         this.push(
           `data: ${JSON.stringify({
             choices: [
               {
-                delta: { role: 'assistant', content: 'Response is streaming fine.' },
+                delta: { role: 'assistant', content: 'I say this every time.' },
               },
             ],
           })}\n\n`
         );
+        // Signal the end of the stream
         this.push('data: [DONE]\n\n');
         this.push(null); // End the stream
       },
@@ -64,6 +52,7 @@ const handler = async (req, res) => {
     // Pipe the stream to the response
     stream.pipe(res);
   } catch (error) {
+    // Handle and log any errors
     console.error('Error in handler:', error);
     res.status(500).json({ error: error.message });
   }
