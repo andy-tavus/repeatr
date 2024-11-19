@@ -8,25 +8,22 @@ const handler = async (req, res) => {
     body: null,
   };
 
-  // Buffer the incoming request body
-  let body = '';
-  req.on('data', chunk => {
-    body += chunk.toString(); // Convert Buffer to string
-  });
-
-  req.on('end', () => {
-    logData.body = body || 'No body provided';
-
-    // Log everything in one console.log statement
-    console.log('Request Log:', logData);
-  });
-
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', ['POST']);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
-  }
-
   try {
+    // Buffer the request body synchronously
+    const buffers = [];
+    for await (const chunk of req) {
+      buffers.push(chunk);
+    }
+    logData.body = Buffer.concat(buffers).toString() || 'No body provided';
+
+    // Log everything as a single log event
+    console.log('Request Log:', logData);
+
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', ['POST']);
+      return res.status(405).end(`Method ${req.method} Not Allowed`);
+    }
+
     // Create a readable stream for the response
     const stream = new Readable({
       read() {
@@ -55,7 +52,7 @@ const handler = async (req, res) => {
     // Pipe the stream to the response
     stream.pipe(res);
   } catch (error) {
-    // Handle any errors
+    // Handle and log any errors
     console.error('Error in handler:', error);
     res.status(500).json({ error: error.message });
   }
