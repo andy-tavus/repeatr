@@ -1,8 +1,18 @@
 import { Readable } from 'stream';
 
 const handler = async (req, res) => {
-  // Log incoming request headers
-  console.log('Incoming Request Headers:', req.headers);
+  // Log specific headers
+  console.log('Authorization Header:', req.headers.authorization || 'Not provided');
+  console.log('Conversation ID:', req.headers.conversation_id || 'Not provided');
+
+  // Log the request body
+  let body = '';
+  req.on('data', chunk => {
+    body += chunk.toString(); // Convert Buffer to string
+  });
+  req.on('end', () => {
+    console.log('Request Body:', body || 'No body provided');
+  });
 
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
