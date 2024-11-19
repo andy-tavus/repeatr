@@ -1,7 +1,6 @@
 import { Readable } from 'stream';
 
 const handler = async (req, res) => {
-  // Initialize an object to collect log data
   const logData = {
     authorization: req.headers.authorization || 'Not provided',
     conversation_id: req.headers.conversation_id || 'Not provided',
@@ -9,14 +8,18 @@ const handler = async (req, res) => {
   };
 
   try {
-    // Buffer the request body synchronously
     const buffers = [];
     for await (const chunk of req) {
       buffers.push(chunk);
     }
-    logData.body = Buffer.concat(buffers).toString() || 'No body provided';
+    const rawBody = Buffer.concat(buffers).toString();
 
-    // Log everything as a single log event
+    try {
+      logData.body = JSON.parse(rawBody); // Parse the JSON body
+    } catch (error) {
+      logData.body = `Invalid JSON: ${rawBody}`;
+    }
+
     console.log('Request Log:', logData);
 
     if (req.method !== 'POST') {
@@ -24,10 +27,8 @@ const handler = async (req, res) => {
       return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 
-    // Create a readable stream for the response
     const stream = new Readable({
       read() {
-        // Send the initial message
         this.push(
           `data: ${JSON.stringify({
             choices: [
@@ -37,22 +38,18 @@ const handler = async (req, res) => {
             ],
           })}\n\n`
         );
-        // Signal the end of the stream
         this.push('data: [DONE]\n\n');
-        this.push(null); // End the stream
+        this.push(null);
       },
     });
 
-    // Set headers for Server-Sent Events (SSE)
     res.setHeader('Content-Type', 'text/plain');
     res.setHeader('Transfer-Encoding', 'chunked');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    // Pipe the stream to the response
     stream.pipe(res);
   } catch (error) {
-    // Handle and log any errors
     console.error('Error in handler:', error);
     res.status(500).json({ error: error.message });
   }
