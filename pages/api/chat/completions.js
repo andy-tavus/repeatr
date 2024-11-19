@@ -1,6 +1,9 @@
 import { Readable } from 'stream';
 
 const handler = async (req, res) => {
+  // Log incoming request headers
+  console.log('Incoming Request Headers:', req.headers);
+
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
@@ -36,6 +39,7 @@ const handler = async (req, res) => {
     stream.pipe(res);
   } catch (error) {
     // Handle any errors
+    console.error('Error in handler:', error);
     res.status(500).json({ error: error.message });
   }
 };
