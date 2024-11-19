@@ -1,19 +1,23 @@
 import { Readable } from 'stream';
 
+export const config = {
+  api: {
+    bodyParser: false, // Disable default body parsing
+  },
+};
+
 const handler = async (req, res) => {
   const logData = {
+    method: req.method,
+    headers: req.headers,
     authorization: req.headers.authorization || 'Not provided',
     conversation_id: req.headers.conversation_id || 'Not provided',
     body: null,
   };
 
   try {
-    if (req.headers['content-type'] !== 'application/json') {
-      logData.body = `Unexpected Content-Type: ${req.headers['content-type']}`;
-      console.log('Request Log:', logData);
-      res.status(400).json({ error: 'Expected application/json Content-Type' });
-      return;
-    }
+    console.log('Request Method:', req.method);
+    console.log('Request Headers:', req.headers);
 
     const buffers = [];
     for await (const chunk of req) {
