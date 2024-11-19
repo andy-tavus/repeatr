@@ -8,14 +8,29 @@ const handler = async (req, res) => {
   };
 
   try {
+    if (req.headers['content-type'] !== 'application/json') {
+      logData.body = `Unexpected Content-Type: ${req.headers['content-type']}`;
+      console.log('Request Log:', logData);
+      res.status(400).json({ error: 'Expected application/json Content-Type' });
+      return;
+    }
+
     const buffers = [];
     for await (const chunk of req) {
       buffers.push(chunk);
     }
     const rawBody = Buffer.concat(buffers).toString();
+    console.log('Raw Body:', rawBody);
+
+    if (!rawBody.trim()) {
+      logData.body = 'No body provided';
+      console.log('Request Log:', logData);
+      res.status(400).json({ error: 'Empty request body' });
+      return;
+    }
 
     try {
-      logData.body = JSON.parse(rawBody); // Parse the JSON body
+      logData.body = JSON.parse(rawBody);
     } catch (error) {
       logData.body = `Invalid JSON: ${rawBody}`;
     }
