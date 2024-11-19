@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "next": "^13.0.0", // Replace with your desired version
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "devDependencies": {
+    // other dev dependencies
+  }
+}
